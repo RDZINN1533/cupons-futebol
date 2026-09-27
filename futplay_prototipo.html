@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FutPlay — Apostas Virtuais</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#0b1020;color:#eef2ff}
+header{background:#11182d;border-bottom:1px solid #26304d;padding:14px 18px;position:sticky;top:0;z-index:5}
+.wrap{max-width:1180px;margin:auto}.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{font-size:23px;font-weight:800}.logo span{color:#5ee37a}.badge{font-size:11px;background:#273352;color:#aeb9d8;padding:5px 8px;border-radius:99px;margin-left:7px}
+.balance{background:#17213a;padding:9px 13px;border-radius:10px;font-weight:700;color:#72ef8c}
+nav{display:flex;gap:8px;overflow:auto;margin-top:14px}nav button,.filter{border:0;background:#19233c;color:#b9c4df;padding:9px 13px;border-radius:9px;cursor:pointer;white-space:nowrap}
+nav button.active,.filter.active{background:#5ee37a;color:#07110a;font-weight:800}
+main{display:grid;grid-template-columns:1fr 330px;gap:18px;padding:22px 0}
+h1{margin:0 0 5px;font-size:28px}.sub{color:#8f9bb8;margin:0 0 18px}
+.filters{display:flex;gap:8px;overflow:auto;margin-bottom:15px}.league{margin-bottom:16px;background:#11182d;border:1px solid #202b48;border-radius:14px;overflow:hidden}
+.lhead{padding:11px 14px;background:#151e35;font-weight:800}.game{padding:14px;border-top:1px solid #202b48}
+.gtop{display:flex;justify-content:space-between;color:#8f9bb8;font-size:12px;margin-bottom:9px}.teams{display:flex;justify-content:space-between;gap:10px;margin-bottom:12px;font-weight:700}
+.odds{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.odd{border:1px solid #2a3657;background:#18233d;color:#fff;border-radius:8px;padding:9px;text-align:center;cursor:pointer}.odd:hover,.odd.selected{border-color:#5ee37a;background:#193d29}.odd small{display:block;color:#8290b0;margin-bottom:3px}
+.ticket{background:#11182d;border:1px solid #202b48;border-radius:14px;padding:15px;position:sticky;top:96px;height:max-content}.ticket h2{margin:0 0 12px;font-size:18px}.empty{color:#7f8ba7;text-align:center;padding:28px 8px}
+.bet{padding:10px 0;border-bottom:1px solid #26304d}.bet strong{display:block}.bet small{color:#8d99b5}.remove{float:right;background:none;border:0;color:#ff7180;cursor:pointer}
+input{width:100%;background:#0c1325;border:1px solid #2a3657;color:white;padding:10px;border-radius:8px;margin-top:10px}
+.cta{width:100%;border:0;background:#5ee37a;color:#07110a;padding:12px;border-radius:9px;font-weight:900;margin-top:10px;cursor:pointer}.cta:disabled{opacity:.4;cursor:not-allowed}
+.total{display:flex;justify-content:space-between;margin-top:12px}.muted{color:#8d99b5}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#17213a;border:1px solid #35415f;padding:12px 18px;border-radius:10px;display:none;z-index:10}
+@media(max-width:800px){main{grid-template-columns:1fr}.ticket{position:static}.top .balance{font-size:13px}}
+
+<style>
+.world{margin-top:20px;background:#11182d;border:1px solid #202b48;border-radius:14px;padding:15px}
+.world h2{margin:0 0 5px}.world p{color:#8f9bb8;margin:0 0 12px}
+.search{display:flex;gap:8px}.search input{margin:0;flex:1}
+.catalog{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-top:12px;max-height:430px;overflow:auto}
+.comp{background:#18233d;border:1px solid #2a3657;border-radius:9px;padding:10px;cursor:pointer}
+.comp:hover{border-color:#5ee37a}.comp b{display:block}.comp small{color:#8d99b5}
+</style>
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<div class="top"><div class="logo">⚽ Fut<span>Play</span><span class="badge">MOEDAS VIRTUAIS</span></div><div class="balance">🪙 <span id="balance">0</span></div></div>
+<nav><button class="active">Futebol</button><button onclick="showToast('Em breve: outros esportes')">Outros esportes</button><button onclick="showToast('Perfil demonstrativo')">Meu perfil</button><button onclick="showHistory()">Histórico</button></nav>
+</div></header>
+<main class="wrap">
+<section><h1>Jogos de hoje</h1><p class="sub">Escolha uma cotação para adicionar ao seu cupom.</p>
+<div class="filters" id="filters"></div><div id="games"></div>
+<div class="world">
+<h2>🌍 Campeonatos do mundo</h2>
+<p>Catálogo organizado por país. Os jogos reais podem ser conectados depois a uma API de dados esportivos.</p>
+<div class="search"><input id="compSearch" placeholder="Pesquisar país ou campeonato..." oninput="renderCatalog()"></div>
+<div class="catalog" id="catalog"></div>
+</div>
+</section>
+<aside class="ticket"><h2>🎟️ Seu cupom</h2><div id="bets"><div class="empty">Nenhuma seleção ainda.<br>Toque em uma odd para começar.</div></div>
+<div id="stakeArea" style="display:none"><label class="muted">Valor da aposta (moedas)</label><input id="stake" type="number" min="1" value="10" oninput="updateTicket()"><div class="total"><span class="muted">Retorno potencial</span><strong id="return">0</strong></div><button class="cta" onclick="placeBet()">Confirmar aposta virtual</button></div></aside>
+</main><div id="toast" class="toast"></div>
+<script>
+const games=[
+{id:1,league:'🇧🇷 Brasileirão',time:'16:00',home:'Flamengo',away:'Palmeiras',odds:[1.85,3.40,4.10]},
+{id:2,league:'🇧🇷 Brasileirão',time:'18:30',home:'Corinthians',away:'São Paulo',odds:[2.35,3.10,2.85]},
+{id:3,league:'🇧🇷 Copa do Brasil',time:'19:00',home:'Grêmio',away:'Cruzeiro',odds:[2.05,3.20,3.55]},
+{id:4,league:'🇪🇸 La Liga',time:'17:00',home:'Barcelona',away:'Atlético de Madrid',odds:[1.72,3.90,4.50]},
+{id:5,league:'🇫🇷 Ligue 1',time:'16:45',home:'PSG',away:'Marseille',odds:[1.55,4.60,5.40]},
+{id:6,league:'🌎 Libertadores',time:'21:30',home:'River Plate',away:'Fluminense',odds:[1.95,3.35,3.80]}
+];
+let balance=0,bets=[],filter='Todos',history=[];
+const labels=['Casa','Empate','Fora'];
+function money(n){return Math.round(n).toLocaleString('pt-BR')}
+function renderFilters(){let ls=['Todos',...new Set(games.map(g=>g.league))];document.getElementById('filters').innerHTML=ls.map(x=>`<button class="filter ${filter===x?'active':''}" onclick="filter='${x}';render()">${x}</button>`).join('')}
+function render(){renderFilters();let arr=games.filter(g=>filter==='Todos'||g.league===filter);let groups={};arr.forEach(g=>(groups[g.league]??=[]).push(g));document.getElementById('games').innerHTML=Object.entries(groups).map(([l,gs])=>`<div class="league"><div class="lhead">${l}</div>${gs.map(g=>`<div class="game"><div class="gtop"><span>${g.time}</span><span>Futebol • cotações virtuais</span></div><div class="teams"><span>${g.home}</span><span>×</span><span>${g.away}</span></div><div class="odds">${g.odds.map((o,i)=>`<button class="odd ${bets.some(b=>b.id===g.id&&b.i===i)?'selected':''}" onclick="pick(${g.id},${i})"><small>${labels[i]}</small>${o.toFixed(2)}</button>`).join('')}</div></div>`).join('')}</div>`).join('')}
+updateTicket()}
+function pick(id,i){let g=games.find(x=>x.id===id);bets=bets.filter(b=>b.id!==id);bets.push({id:g.id,i,league:g.league,match:g.home+' x '+g.away,label:labels[i],odd:g.odds[i]});render()}
+function updateTicket(){let box=document.getElementById('bets');if(!bets.length){box.innerHTML='<div class="empty">Nenhuma seleção ainda.<br>Toque em uma odd para começar.</div>';document.getElementById('stakeArea').style.display='none';return}
+box.innerHTML=bets.map((b,n)=>`<div class="bet"><button class="remove" onclick="bets.splice(${n},1);render()">×</button><strong>${b.match}</strong><small>${b.label} • odd ${b.odd.toFixed(2)}</small></div>`).join('');
+document.getElementById('stakeArea').style.display='block';let stake=Number(document.getElementById('stake').value)||0;let mult=bets.reduce((a,b)=>a*b.odd,1);document.getElementById('return').textContent=money(stake*mult)+' moedas'}
+function placeBet(){let stake=Number(document.getElementById('stake').value);if(!stake||stake<=0){showToast('Digite um valor válido para a aposta.');return}let mult=bets.reduce((a,b)=>a*b.odd,1);history.unshift({date:new Date().toLocaleString('pt-BR'),bets:[...bets],stake,mult,return:stake*mult});document.getElementById('balance').textContent=money(balance);bets=[];render();showToast('Aposta virtual registrada!')}
+function showHistory(){if(!history.length){showToast('Você ainda não possui apostas no histórico.');return}let x=history.map(h=>`${h.date} — ${h.stake} moedas — retorno potencial ${money(h.return)}`).join('\\n');alert('HISTÓRICO\\n\\n'+x)}
+function showToast(t){let x=document.getElementById('toast');x.textContent=t;x.style.display='block';setTimeout(()=>x.style.display='none',2200)}
+render();
+
+const catalog = {
+"Brasil":["Brasileirão Série A","Brasileirão Série B","Brasileirão Série C","Brasileirão Série D","Copa do Brasil","Supercopa do Brasil","Paulistão","Paulista Série A2","Paulista Série A3","Copa Paulista","Carioca","Mineiro","Gaúcho","Paranaense","Pernambucano","Cearense","Baiano","Copa do Nordeste"],
+"Inglaterra":["Premier League","Championship","League One","League Two","FA Cup","EFL Cup","National League","Women's Super League"],
+"Espanha":["La Liga","La Liga 2","Copa del Rey","Supercopa de España","Primera Federación","Liga F"],
+"França":["Ligue 1","Ligue 2","Coupe de France","Trophée des Champions","National","Division 1 Féminine"],
+"Itália":["Serie A","Serie B","Coppa Italia","Supercoppa Italiana","Serie C","Serie A Femminile"],
+"Alemanha":["Bundesliga","2. Bundesliga","3. Liga","DFB-Pokal","DFL-Supercup","Frauen-Bundesliga"],
+"Portugal":["Primeira Liga","Liga Portugal 2","Taça de Portugal","Taça da Liga","Supertaça Cândido de Oliveira"],
+"Argentina":["Liga Profesional","Primera Nacional","Copa Argentina","Supercopa Argentina"],
+"Uruguai":["Primera División","Segunda División","Copa AUF Uruguay","Supercopa Uruguaya"],
+"Chile":["Primera División","Primera B","Copa Chile","Supercopa de Chile"],
+"Colômbia":["Primera A","Primera B","Copa Colombia","Superliga Colombiana"],
+"Paraguai":["Primera División","División Intermedia","Copa Paraguay","Supercopa"],
+"Peru":["Liga 1","Liga 2","Copa Bicentenario","Supercopa Peruana"],
+"Equador":["LigaPro Serie A","LigaPro Serie B","Copa Ecuador","Supercopa"],
+"Bolívia":["División Profesional","Copa Bolivia"],
+"Estados Unidos":["MLS","USL Championship","USL League One","US Open Cup","NWSL"],
+"Canadá":["Canadian Premier League","Canadian Championship"],
+"México":["Liga MX","Liga de Expansión MX","Liga Premier","Copa MX","Campeón de Campeones"],
+"Holanda":["Eredivisie","Eerste Divisie","KNVB Beker","Johan Cruyff Schaal"],
+"Bélgica":["Jupiler Pro League","Challenger Pro League","Croky Cup","Super Cup"],
+"Turquia":["Süper Lig","1. Lig","Turkish Cup","Turkish Super Cup"],
+"Grécia":["Super League","Super League 2","Greek Cup"],
+"Escócia":["Premiership","Championship","League One","League Two","Scottish Cup","League Cup"],
+"Áustria":["Bundesliga","2. Liga","ÖFB-Cup"],
+"Suíça":["Super League","Challenge League","Swiss Cup"],
+"Ucrânia":["Premier League","First League","Ukrainian Cup"],
+"Rússia":["Premier League","First League","Russian Cup","Super Cup"],
+"Arábia Saudita":["Saudi Pro League","King's Cup","Saudi Super Cup"],
+"Emirados Árabes":["UAE Pro League","UAE President's Cup","UAE League Cup"],
+"Japão":["J1 League","J2 League","J3 League","Emperor's Cup","J.League Cup"],
+"Coreia do Sul":["K League 1","K League 2","K3 League","FA Cup"],
+"China":["Chinese Super League","China League One","FA Cup"],
+"Austrália":["A-League Men","A-League Women","Australia Cup"],
+"África do Sul":["Premier Soccer League","National First Division","Nedbank Cup"],
+"Egito":["Premier League","Egypt Cup","Egyptian Super Cup"],
+"Marrocos":["Botola Pro","Botola 2","Throne Cup"],
+"Internacionais":["UEFA Champions League","UEFA Europa League","UEFA Conference League","UEFA Super Cup","Copa Libertadores","Copa Sudamericana","Recopa Sudamericana","Copa América","Copa do Mundo","Mundial de Clubes da FIFA","CONCACAF Champions Cup","CAF Champions League","CAF Confederation Cup","AFC Champions League Elite","AFC Champions League Two","OFC Champions League"]
+};
+function renderCatalog(){
+ const q=(document.getElementById('compSearch').value||'').toLowerCase();
+ const rows=[];
+ Object.entries(catalog).forEach(([country, comps])=>comps.forEach(comp=>{
+   if(!q||country.toLowerCase().includes(q)||comp.toLowerCase().includes(q))
+     rows.push(`<div class="comp" onclick="selectCompetition('${comp.replace(/'/g,"\\'")}')"><b>${comp}</b><small>${country}</small></div>`);
+ }));
+ document.getElementById('catalog').innerHTML=rows.join('')||'<div class="empty">Nenhum campeonato encontrado.</div>';
+}
+function selectCompetition(c){showToast(c+' selecionado — jogos serão carregados quando a fonte de dados estiver conectada.')}
+renderCatalog();
+</script>
+</body></html>
